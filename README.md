@@ -7,13 +7,13 @@
 
 ## 🎨 Color Palette — Teal Lightning
 
-| Name       | Hex       | Preview        | Usage                          |
-|------------|-----------|----------------|--------------------------------|
-| Darkest    | `#041421` | ⬛ Deep Navy    | Primary text, headings         |
-| Dark       | `#042630` | 🟦 Dark Teal    | Sidebar, buttons, backgrounds  |
-| Mid        | `#4c7273` | 🟩 Teal         | Accents, icons, active states  |
-| Light      | `#86b9b0` | 🩵 Light Teal   | Subtle text, muted labels      |
-| Pale       | `#d0d6d6` | ⬜ Soft Gray    | Borders, dividers, backgrounds |
+| Name    | Hex       | Preview       | Usage                          |
+| ------- | --------- | ------------- | ------------------------------ |
+| Darkest | `#041421` | ⬛ Deep Navy  | Primary text, headings         |
+| Dark    | `#042630` | 🟦 Dark Teal  | Sidebar, buttons, backgrounds  |
+| Mid     | `#4c7273` | 🟩 Teal       | Accents, icons, active states  |
+| Light   | `#86b9b0` | 🩵 Light Teal | Subtle text, muted labels      |
+| Pale    | `#d0d6d6` | ⬜ Soft Gray  | Borders, dividers, backgrounds |
 
 ---
 
@@ -21,12 +21,12 @@
 
 Before running this project, make sure you have the following installed:
 
-| Tool       | Version   | Download Link                          |
-|------------|-----------|----------------------------------------|
-| Node.js    | v18+      | https://nodejs.org/                    |
-| npm        | v9+       | Comes with Node.js                     |
-| Git        | Latest    | https://git-scm.com/                   |
-| XAMPP      | Latest    | https://www.apachefriends.org/         |
+| Tool    | Version | Download Link                  |
+| ------- | ------- | ------------------------------ |
+| Node.js | v18+    | https://nodejs.org/            |
+| npm     | v9+     | Comes with Node.js             |
+| Git     | Latest  | https://git-scm.com/           |
+| XAMPP   | Latest  | https://www.apachefriends.org/ |
 
 ---
 
@@ -42,31 +42,46 @@ C:\xampp\htdocs\devtrack-pro\
 
 ## ⚡ How to Run
 
-### Step 1 — Open Terminal
+> ⚠️ This project now has a **Frontend + Backend**. You need to run **two servers** at the same time.
 
-Open **PowerShell** or **Command Prompt** and navigate to the project folder:
+---
+
+### 🗄️ Step 1 — Start XAMPP (MySQL)
+
+1. Open **XAMPP Control Panel**
+2. Click **Start** next to **Apache** and **MySQL**
+3. Make sure the `devtrack_pro` database exists in **phpMyAdmin** → `http://localhost/phpmyadmin`
+
+---
+
+### 🖥️ Step 2 — Start the Backend API (Terminal 1)
+
+Open a PowerShell terminal and run:
+
+```powershell
+cd C:\xampp\htdocs\devtrack-pro\backend
+npm run dev
+```
+
+You should see:
+
+```
+🚀 DevTrack Pro API running at http://localhost:5000
+📡 Accepting requests from http://localhost:5173
+✅ Connected to MariaDB — devtrack_pro
+```
+
+> The backend API is now live at **http://localhost:5000**
+
+---
+
+### 🌐 Step 3 — Start the Frontend (Terminal 2)
+
+Open a **second** PowerShell terminal and run:
 
 ```powershell
 cd C:\xampp\htdocs\devtrack-pro
-```
-
-### Step 2 — Install Dependencies (First Time Only)
-
-```powershell
 npm install
-```
-
-This installs all required packages:
-- `react` + `react-dom`
-- `react-router-dom`
-- `recharts`
-- `lucide-react`
-- `tailwindcss`
-- `vite`
-
-### Step 3 — Start the Development Server
-
-```powershell
 npm run dev
 ```
 
@@ -85,16 +100,70 @@ Go to: **http://localhost:5173**
 
 ---
 
+### 🧪 Step 5 — Test the API with Postman
+
+Import and test the backend endpoints using **Postman**:
+
+#### Base URL
+
+```
+http://localhost:5000
+```
+
+#### Health Check
+
+| Method | URL                      | Expected Response    |
+| ------ | ------------------------ | -------------------- |
+| GET    | `http://localhost:5000/` | `{ "status": "OK" }` |
+
+#### Projects
+
+| Method | URL                 | Body (JSON)                                                              |
+| ------ | ------------------- | ------------------------------------------------------------------------ |
+| GET    | `/api/projects`     | —                                                                        |
+| GET    | `/api/projects/:id` | —                                                                        |
+| POST   | `/api/projects`     | `{ "name": "...", "client": "...", "status": "To Do", "budget": 50000 }` |
+| PUT    | `/api/projects/:id` | `{ "name": "...", "progress": 80 }`                                      |
+| DELETE | `/api/projects/:id` | —                                                                        |
+
+#### Payments
+
+| Method | URL                 | Body (JSON)                                                               |
+| ------ | ------------------- | ------------------------------------------------------------------------- |
+| GET    | `/api/payments`     | —                                                                         |
+| POST   | `/api/payments`     | `{ "project_id": 1, "total": 50000, "paid": 25000, "status": "Partial" }` |
+| PUT    | `/api/payments/:id` | `{ "paid": 50000, "status": "Paid" }`                                     |
+
+#### Meetings
+
+| Method | URL                 | Body (JSON)                                                                                                            |
+| ------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/meetings`     | —                                                                                                                      |
+| POST   | `/api/meetings`     | `{ "project_id": 1, "client": "ABC", "type": "Review", "date": "2026-04-20", "time": "10:00 AM", "platform": "Zoom" }` |
+| DELETE | `/api/meetings/:id` | —                                                                                                                      |
+
+#### Authentication
+
+| Method | URL                  | Body (JSON)                                                                     |
+| ------ | -------------------- | ------------------------------------------------------------------------------- |
+| POST   | `/api/auth/register` | `{ "name": "Admin", "email": "admin@devtrack.com", "password": "password123" }` |
+| POST   | `/api/auth/login`    | `{ "email": "admin@devtrack.com", "password": "password123" }`                  |
+| GET    | `/api/auth/me`       | Header: `Authorization: Bearer <token>`                                         |
+
+> 💡 **Postman Tip:** After logging in, copy the `token` from the response and add it as a **Bearer Token** in the Authorization tab for protected routes.
+
+---
+
 ## 🌐 Available Pages & Routes
 
-| Page            | Route              | Description                                      |
-|-----------------|--------------------|--------------------------------------------------|
-| Dashboard       | `/`                | Overview cards, earnings chart, recent activity  |
-| Projects        | `/projects`        | Project list with search, filter, add modal      |
-| Project Details | `/projects/:id`    | Tasks, milestones, progress bar, project info    |
-| Payments        | `/payments`        | Payment table with balances and status           |
-| Meetings        | `/meetings`        | Meeting cards with schedule modal                |
-| Analytics       | `/analytics`       | Charts for earnings, status, and completion      |
+| Page            | Route           | Description                                     |
+| --------------- | --------------- | ----------------------------------------------- |
+| Dashboard       | `/`             | Overview cards, earnings chart, recent activity |
+| Projects        | `/projects`     | Project list with search, filter, add modal     |
+| Project Details | `/projects/:id` | Tasks, milestones, progress bar, project info   |
+| Payments        | `/payments`     | Payment table with balances and status          |
+| Meetings        | `/meetings`     | Meeting cards with schedule modal               |
+| Analytics       | `/analytics`    | Charts for earnings, status, and completion     |
 
 ---
 
@@ -175,12 +244,14 @@ npm run preview
 ## �� Features
 
 ### ✅ Dashboard
+
 - Summary stat cards (Total Projects, Active, Completed, Earnings)
 - Bar chart — Earnings per Project (Recharts)
 - Recent Activity feed
 - Recent Projects table with progress bars
 
 ### ✅ Projects
+
 - Project cards with search and status filter
 - Progress bar per project
 - GitHub repo link
@@ -188,22 +259,26 @@ npm run preview
 - Add Project modal (UI only)
 
 ### ✅ Project Details
+
 - Full project info (dates, budget, paid amount)
 - Overall progress bar
 - Task checklist (done / pending)
 - Milestone timeline with visual indicators
 
 ### ✅ Payments
+
 - Summary cards (Total, Collected, Pending)
 - Full payment table with ₱ amounts
 - Color-coded status badges (Paid / Partial / Unpaid)
 
 ### ✅ Meetings
+
 - Meeting cards with platform badges
 - Date, time, and notes display
 - Schedule Meeting modal (UI only)
 
 ### ✅ Analytics
+
 - Budget vs Earned grouped bar chart
 - Project Status donut/pie chart
 - Horizontal completion progress chart
@@ -213,47 +288,74 @@ npm run preview
 
 ## ⚠️ Notes
 
-- This is a **frontend prototype only** — no backend, no database, no authentication
-- All data is **static mock data** from `src/data/mockData.js`
-- Modals are **UI demonstrations** — no data is actually saved
-- Designed for **desktop-first** with responsive mobile support
+- Backend API runs on **http://localhost:5000**
+- Frontend runs on **http://localhost:5173**
+- Always start **XAMPP MySQL** before starting the backend
+- Keep `backend/.env` private — never commit it to Git
+- Auth routes require a **Bearer Token** in the `Authorization` header
 
 ---
 
 ## 🧑‍💻 Tech Stack
 
-| Technology       | Purpose                  |
-|------------------|--------------------------|
-| React 19         | UI framework             |
-| Vite 8           | Build tool & dev server  |
-| Tailwind CSS 3   | Utility-first styling    |
-| React Router 7   | Client-side routing      |
-| Recharts         | Chart components         |
-| Lucide React     | Icon library             |
+| Layer       | Technology           | Purpose                   |
+| ----------- | -------------------- | ------------------------- |
+| Frontend    | React 19             | UI framework              |
+| Build Tool  | Vite 8               | Dev server & bundler      |
+| Styling     | Tailwind CSS 3       | Utility-first styling     |
+| Routing     | React Router 7       | Client-side routing       |
+| Charts      | Recharts             | Chart components          |
+| Icons       | Lucide React         | Icon library              |
+| Backend     | Node.js + Express.js | REST API server           |
+| Database    | MariaDB 10.4 (XAMPP) | Data storage              |
+| Auth        | JWT + bcryptjs       | Authentication & security |
+| API Testing | Postman              | Endpoint testing          |
 
 ---
 
 ## 🐛 Troubleshooting
 
-**Problem:** `npm run dev` shows port already in use  
+**Problem:** `npm run dev` (frontend) shows port already in use  
 **Solution:**
+
 ```powershell
-# Kill process on port 5173
 netstat -ano | findstr :5173
 taskkill /PID <PID_NUMBER> /F
 ```
 
+**Problem:** Backend shows `❌ Database connection failed`  
+**Solution:** Make sure **XAMPP MySQL is running** before starting the backend server.
+
+**Problem:** Backend port 5000 already in use  
+**Solution:**
+
+```powershell
+netstat -ano | findstr :5000
+taskkill /PID <PID_NUMBER> /F
+```
+
+**Problem:** Postman returns `401 Unauthorized` on `/api/auth/me`  
+**Solution:** Add `Authorization: Bearer <your_token>` in the **Headers** tab in Postman. Get the token from the `/api/auth/login` response.
+
 **Problem:** `node_modules` missing or corrupted  
 **Solution:**
+
 ```powershell
+# Frontend
+Remove-Item -Recurse -Force node_modules
+npm install
+
+# Backend
+cd backend
 Remove-Item -Recurse -Force node_modules
 npm install
 ```
 
 **Problem:** Tailwind styles not applying  
 **Solution:** Make sure `tailwind.config.js` content paths are correct:
+
 ```js
-content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"]
+content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"];
 ```
 
 ---
@@ -266,4 +368,4 @@ content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"]
 
 ---
 
-*Built with ❤️ using React + Vite + Tailwind CSS*
+_Built with ❤️ using React + Vite + Tailwind CSS_
