@@ -35,6 +35,15 @@ const emptyForm = {
   commission: "",
 };
 
+const getAutoStatus = (paid, total) => {
+  const p = Number(paid) || 0;
+  const t = Number(total) || 0;
+  if (t <= 0) return "Unpaid";
+  if (p >= t) return "Paid";
+  if (p > 0) return "Partial";
+  return "Unpaid";
+};
+
 const Payments = () => {
   const [payments, setPayments] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -62,6 +71,26 @@ const Payments = () => {
     setShowModal(true);
   };
 
+  // When a project is selected in Add modal, auto-fill total from project budget
+  // and compute already paid amount from ALL existing payment records for that project
+  const handleProjectSelect = (projectId) => {
+    const proj = projects.find((p) => String(p.id) === String(projectId));
+    const projectTotal = proj ? Number(proj.budget) || 0 : 0;
+    // Sum ALL paid transactions for this project
+    const alreadyPaid = payments
+      .filter((p) => String(p.project_id) === String(projectId))
+      .reduce((s, p) => s + Number(p.paid), 0);
+    const remaining = Math.max(projectTotal - alreadyPaid, 0);
+    setForm((f) => ({
+      ...f,
+      project_id: projectId,
+      total: projectTotal > 0 ? String(projectTotal) : "",
+      _alreadyPaid: alreadyPaid,
+      _remaining: remaining,
+      paid: "",
+    }));
+  };
+
   const openEdit = (p) => {
     setEditId(p.id);
     setForm({
@@ -79,33 +108,54 @@ const Payments = () => {
 
   const handleSave = async () => {
     if (!form.project_id || !form.total) return;
+
+    // For Add mode: status is based on cumulative paid across ALL records for this project
+    // For Edit mode: recalculate cumulative paid (excluding the record being edited, then adding new value)
+    const newPaymentAmount = Number(form.paid) || 0;
+
+    let cumulativePaid;
+    if (editId) {
+      // All paid for this project EXCEPT the current record being edited
+      const otherPaid = payments
+        .filter(
+          (p) =>
+            String(p.project_id) === String(form.project_id) && p.id !== editId,
+        )
+        .reduce((s, p) => s + Number(p.paid), 0);
+      cumulativePaid = otherPaid + newPaymentAmount;
+    } else {
+      cumulativePaid = Number(form._alreadyPaid || 0) + newPaymentAmount;
+    }
+
+    const autoStatus = getAutoStatus(cumulativePaid, form.total);
+
     setSaving(true);
     try {
       if (editId) {
         const res = await updatePayment(editId, {
           total: Number(form.total),
-          paid: Number(form.paid) || 0,
-          status: form.status,
+          paid: newPaymentAmount,
+          status: autoStatus,
           paid_date: form.paid_date || null,
           payment_mode: form.payment_mode || null,
           notes: form.notes || null,
           commission: Number(form.commission) || 0,
         });
-        setPayments((prev) =>
-          prev.map((p) => (p.id === editId ? { ...p, ...res.data } : p)),
-        );
+        // Update this record locally and also refresh status on all records of same project
+        const refreshed = await getPayments();
+        setPayments(refreshed.data);
       } else {
+        // Always create a new transaction record
         await createPayment({
           project_id: Number(form.project_id),
           total: Number(form.total),
-          paid: Number(form.paid) || 0,
-          status: form.status,
+          paid: newPaymentAmount,
+          status: autoStatus,
           paid_date: form.paid_date || null,
           payment_mode: form.payment_mode || null,
           notes: form.notes || null,
           commission: Number(form.commission) || 0,
         });
-        // Re-fetch to get project name + client joined
         const refreshed = await getPayments();
         setPayments(refreshed.data);
       }
@@ -151,11 +201,22 @@ const Payments = () => {
     0,
   );
   const netCollected = totalEarned - totalCommission;
-  const totalPending = payments.reduce(
-    (s, p) => s + (Number(p.total) - Number(p.paid)),
-    0,
-  );
-  const totalAll = payments.reduce((s, p) => s + Number(p.total), 0);
+
+  // Deduplicate by project_id so budget is only counted once per project
+  const uniqueProjectIds = [
+    ...new Set(payments.map((p) => String(p.project_id))),
+  ];
+  const totalAll = uniqueProjectIds.reduce((s, pid) => {
+    const record = payments.find((p) => String(p.project_id) === pid);
+    return s + (record ? Number(record.total) : 0);
+  }, 0);
+  const totalPaidPerProject = uniqueProjectIds.reduce((s, pid) => {
+    const paid = payments
+      .filter((p) => String(p.project_id) === pid)
+      .reduce((ps, p) => ps + Number(p.paid), 0);
+    return s + paid;
+  }, 0);
+  const totalPending = Math.max(totalAll - totalPaidPerProject, 0);
 
   return (
     <div className="space-y-6">
@@ -431,9 +492,7 @@ const Payments = () => {
                 </label>
                 <select
                   value={form.project_id}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, project_id: e.target.value }))
-                  }
+                  onChange={(e) => handleProjectSelect(e.target.value)}
                   className={inputCls}
                   style={inputStyle}
                 >
@@ -444,6 +503,65 @@ const Payments = () => {
                     </option>
                   ))}
                 </select>
+                {form.project_id && (
+                  <div
+                    className="mt-2 p-3 rounded-lg text-sm space-y-1"
+                    style={{ background: "#e0efee" }}
+                  >
+                    <div className="flex justify-between">
+                      <span style={{ color: "#042630" }}>Total Contract:</span>
+                      <span
+                        className="font-semibold"
+                        style={{ color: "#042630" }}
+                      >
+                        ₱{Number(form.total || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span style={{ color: "#042630" }}>Already Paid:</span>
+                      <span
+                        className="font-semibold"
+                        style={{ color: "#0a5940" }}
+                      >
+                        ₱{Number(form._alreadyPaid || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <div
+                      className="flex justify-between border-t pt-1"
+                      style={{ borderColor: "#86b9b0" }}
+                    >
+                      <span
+                        className="font-medium"
+                        style={{ color: "#991b1b" }}
+                      >
+                        Remaining Balance:
+                      </span>
+                      <span className="font-bold" style={{ color: "#991b1b" }}>
+                        ₱{Number(form._remaining || 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {editId && (
+              <div>
+                <label
+                  className="block text-sm font-medium mb-1"
+                  style={{ color: "#041421" }}
+                >
+                  Total Amount (₱)
+                </label>
+                <input
+                  type="number"
+                  placeholder="50000"
+                  value={form.total}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, total: e.target.value }))
+                  }
+                  className={inputCls}
+                  style={inputStyle}
+                />
               </div>
             )}
             <div>
@@ -451,29 +569,15 @@ const Payments = () => {
                 className="block text-sm font-medium mb-1"
                 style={{ color: "#041421" }}
               >
-                Total Amount (₱)
+                {editId ? "Amount Paid (₱)" : "New Payment Amount (₱)"}
               </label>
               <input
                 type="number"
-                placeholder="50000"
-                value={form.total}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, total: e.target.value }))
+                placeholder={
+                  !editId && form._remaining > 0
+                    ? `Max: ₱${Number(form._remaining).toLocaleString()}`
+                    : "0"
                 }
-                className={inputCls}
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label
-                className="block text-sm font-medium mb-1"
-                style={{ color: "#041421" }}
-              >
-                Amount Paid (₱)
-              </label>
-              <input
-                type="number"
-                placeholder="0"
                 value={form.paid}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, paid: e.target.value }))
@@ -481,6 +585,47 @@ const Payments = () => {
                 className={inputCls}
                 style={inputStyle}
               />
+              {!editId && form.project_id && Number(form.paid) > 0 && (
+                <p
+                  className="text-xs mt-1 font-medium"
+                  style={{
+                    color:
+                      getAutoStatus(
+                        Number(form._alreadyPaid || 0) + Number(form.paid),
+                        form.total,
+                      ) === "Paid"
+                        ? "#0a5940"
+                        : "#854d0e",
+                  }}
+                >
+                  Project status will be:{" "}
+                  <strong>
+                    {getAutoStatus(
+                      Number(form._alreadyPaid || 0) + Number(form.paid),
+                      form.total,
+                    )}
+                  </strong>{" "}
+                  — Remaining after this payment: ₱
+                  {Math.max(
+                    Number(form._remaining || 0) - Number(form.paid),
+                    0,
+                  ).toLocaleString()}
+                </p>
+              )}
+              {editId && Number(form.paid) > 0 && Number(form.total) > 0 && (
+                <p
+                  className="text-xs mt-1 font-medium"
+                  style={{
+                    color:
+                      getAutoStatus(form.paid, form.total) === "Paid"
+                        ? "#0a5940"
+                        : "#854d0e",
+                  }}
+                >
+                  Status will be:{" "}
+                  <strong>{getAutoStatus(form.paid, form.total)}</strong>
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -490,18 +635,55 @@ const Payments = () => {
                 >
                   Status
                 </label>
-                <select
-                  value={form.status}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, status: e.target.value }))
-                  }
-                  className={inputCls}
-                  style={inputStyle}
+                <div
+                  className="px-3 py-2 rounded-lg text-sm font-semibold"
+                  style={{
+                    background:
+                      getAutoStatus(
+                        editId
+                          ? form.paid
+                          : Number(form._alreadyPaid || 0) +
+                              Number(form.paid || 0),
+                        form.total,
+                      ) === "Paid"
+                        ? "#d0f0e8"
+                        : getAutoStatus(
+                              editId
+                                ? form.paid
+                                : Number(form._alreadyPaid || 0) +
+                                    Number(form.paid || 0),
+                              form.total,
+                            ) === "Partial"
+                          ? "#fef9c3"
+                          : "#fee2e2",
+                    color:
+                      getAutoStatus(
+                        editId
+                          ? form.paid
+                          : Number(form._alreadyPaid || 0) +
+                              Number(form.paid || 0),
+                        form.total,
+                      ) === "Paid"
+                        ? "#0a5940"
+                        : getAutoStatus(
+                              editId
+                                ? form.paid
+                                : Number(form._alreadyPaid || 0) +
+                                    Number(form.paid || 0),
+                              form.total,
+                            ) === "Partial"
+                          ? "#854d0e"
+                          : "#991b1b",
+                  }}
                 >
-                  <option>Unpaid</option>
-                  <option>Partial</option>
-                  <option>Paid</option>
-                </select>
+                  {getAutoStatus(
+                    editId
+                      ? form.paid
+                      : Number(form._alreadyPaid || 0) + Number(form.paid || 0),
+                    form.total,
+                  )}{" "}
+                  (auto)
+                </div>
               </div>
               <div>
                 <label
