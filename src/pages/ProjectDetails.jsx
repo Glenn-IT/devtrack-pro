@@ -41,6 +41,15 @@ const inputCls =
   "w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4c7273]";
 const inputStyle = { borderColor: "#d0d6d6", color: "#041421" };
 
+const getAutoStatus = (paid, total) => {
+  const p = Number(paid) || 0;
+  const t = Number(total) || 0;
+  if (t <= 0) return "Unpaid";
+  if (p >= t) return "Paid";
+  if (p > 0) return "Partial";
+  return "Unpaid";
+};
+
 const ProjectDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -237,15 +246,20 @@ const ProjectDetails = () => {
 
   // ─── PAYMENTS ───────────────────────────────────────────
   const openAddPayment = () => {
+    const projectTotal = Number(project?.budget) || 0;
+    const alreadyPaid = payments.reduce((s, p) => s + Number(p.paid), 0);
+    const remaining = Math.max(projectTotal - alreadyPaid, 0);
     setEditingPaymentId(null);
     setPaymentForm({
-      total: "",
+      total: projectTotal > 0 ? String(projectTotal) : "",
       paid: "",
       status: "Unpaid",
       paid_date: "",
       payment_mode: "",
       notes: "",
       commission: "",
+      _alreadyPaid: alreadyPaid,
+      _remaining: remaining,
     });
     setShowPaymentModal(true);
   };
@@ -267,35 +281,46 @@ const ProjectDetails = () => {
   const handleSavePayment = async () => {
     if (!paymentForm.total) return;
     setSavingPayment(true);
+
+    const newAmount = Number(paymentForm.paid) || 0;
+    let cumulativePaid;
+    if (editingPaymentId) {
+      const otherPaid = payments
+        .filter((p) => p.id !== editingPaymentId)
+        .reduce((s, p) => s + Number(p.paid), 0);
+      cumulativePaid = otherPaid + newAmount;
+    } else {
+      cumulativePaid = Number(paymentForm._alreadyPaid || 0) + newAmount;
+    }
+    const autoStatus = getAutoStatus(cumulativePaid, paymentForm.total);
+
     try {
       if (editingPaymentId) {
-        const res = await updatePayment(editingPaymentId, {
+        await updatePayment(editingPaymentId, {
           total: Number(paymentForm.total),
-          paid: Number(paymentForm.paid),
-          status: paymentForm.status,
+          paid: newAmount,
+          status: autoStatus,
           paid_date: paymentForm.paid_date || null,
           payment_mode: paymentForm.payment_mode || null,
           notes: paymentForm.notes || null,
           commission: Number(paymentForm.commission) || 0,
         });
-        setPayments((prev) =>
-          prev.map((p) =>
-            p.id === editingPaymentId ? { ...p, ...res.data } : p,
-          ),
-        );
       } else {
-        const res = await createPayment({
+        await createPayment({
           project_id: Number(id),
           total: Number(paymentForm.total),
-          paid: Number(paymentForm.paid) || 0,
-          status: paymentForm.status,
+          paid: newAmount,
+          status: autoStatus,
           paid_date: paymentForm.paid_date || null,
           payment_mode: paymentForm.payment_mode || null,
           notes: paymentForm.notes || null,
           commission: Number(paymentForm.commission) || 0,
         });
-        setPayments((prev) => [...prev, res.data]);
       }
+      // Always re-fetch so all records reflect updated cumulative status
+      const refreshed = await getPayments();
+      const pId = Number(id);
+      setPayments(refreshed.data.filter((p) => p.project_id === pId));
       setShowPaymentModal(false);
     } catch {
       alert("Failed to save payment.");
@@ -308,7 +333,9 @@ const ProjectDetails = () => {
     if (!window.confirm("Delete this payment record?")) return;
     try {
       await deletePayment(pId);
-      setPayments((prev) => prev.filter((p) => p.id !== pId));
+      const refreshed = await getPayments();
+      const projId = Number(id);
+      setPayments(refreshed.data.filter((p) => p.project_id === projId));
     } catch {
       alert("Failed to delete payment.");
     }
@@ -599,112 +626,132 @@ const ProjectDetails = () => {
               </p>
             ) : (
               <div className="space-y-3">
-                {payments.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between p-3 rounded-xl"
-                    style={{ background: "#f0f4f4" }}
-                  >
-                    <div>
-                      <p
-                        className="text-sm font-medium"
-                        style={{ color: "#041421" }}
+                {(() => {
+                  const projectTotal = Number(project?.budget) || 0;
+                  const totalPaidSoFar = payments.reduce(
+                    (s, p) => s + Number(p.paid),
+                    0,
+                  );
+                  return payments.map((p, idx) => {
+                    // Cumulative paid up to and including this record (by insertion order)
+                    const paidUpToHere = payments
+                      .slice(0, idx + 1)
+                      .reduce((s, r) => s + Number(r.paid), 0);
+                    const remainingAfter = Math.max(
+                      projectTotal - paidUpToHere,
+                      0,
+                    );
+                    return (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between p-3 rounded-xl"
+                        style={{ background: "#f0f4f4" }}
                       >
-                        Total:{" "}
-                        <span style={{ color: "#041421" }}>
-                          ₱{Number(p.total).toLocaleString()}
-                        </span>
-                        {" · "}Paid:{" "}
-                        <span style={{ color: "#0a5940" }}>
-                          ₱{Number(p.paid).toLocaleString()}
-                        </span>
-                        {" · "}Remaining:{" "}
-                        <span style={{ color: "#991b1b" }}>
-                          ₱{(Number(p.total) - Number(p.paid)).toLocaleString()}
-                        </span>
-                      </p>
-                      <p
-                        className="text-xs mt-0.5 flex flex-wrap gap-x-3"
-                        style={{ color: "#86b9b0" }}
-                      >
-                        <span>Status: {p.status}</span>
-                        {p.payment_mode && (
-                          <span
-                            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium"
-                            style={{
-                              background:
-                                p.payment_mode === "GCash"
-                                  ? "#ede9fe"
-                                  : p.payment_mode === "Cash"
-                                    ? "#d0f0e8"
-                                    : "#e0efee",
-                              color:
-                                p.payment_mode === "GCash"
-                                  ? "#4c1d95"
-                                  : p.payment_mode === "Cash"
-                                    ? "#0a5940"
-                                    : "#042630",
-                            }}
+                        <div>
+                          <p
+                            className="text-sm font-medium"
+                            style={{ color: "#041421" }}
                           >
-                            {p.payment_mode}
-                          </span>
-                        )}
-                        {p.paid_date && (
-                          <span>
-                            📅{" "}
-                            {new Date(p.paid_date).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </span>
-                        )}
-                      </p>
-                      {p.notes && (
-                        <p
-                          className="text-xs mt-1 italic"
-                          style={{ color: "#86b9b0" }}
-                        >
-                          {p.notes}
-                        </p>
-                      )}
-                      {Number(p.commission) > 0 && (
-                        <p
-                          className="text-xs mt-1 font-medium"
-                          style={{ color: "#9d174d" }}
-                        >
-                          Commission: −₱{Number(p.commission).toLocaleString()}{" "}
-                          → Net: ₱
-                          {(
-                            Number(p.paid) - Number(p.commission)
-                          ).toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-1.5">
-                      <button
-                        onClick={() => openEditPayment(p)}
-                        className="p-1.5 rounded-lg"
-                        style={{ background: "#fef9c3" }}
-                      >
-                        <Pencil
-                          className="w-3.5 h-3.5"
-                          style={{ color: "#854d0e" }}
-                        />
-                      </button>
-                      <button
-                        onClick={() => handleDeletePayment(p.id)}
-                        className="p-1.5 rounded-lg"
-                        style={{ background: "#fee2e2" }}
-                      >
-                        <Trash2
-                          className="w-3.5 h-3.5"
-                          style={{ color: "#991b1b" }}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                            Total:{" "}
+                            <span style={{ color: "#041421" }}>
+                              ₱{Number(projectTotal).toLocaleString()}
+                            </span>
+                            {" · "}Paid:{" "}
+                            <span style={{ color: "#0a5940" }}>
+                              ₱{Number(p.paid).toLocaleString()}
+                            </span>
+                            {" · "}Remaining:{" "}
+                            <span style={{ color: "#991b1b" }}>
+                              ₱{remainingAfter.toLocaleString()}
+                            </span>
+                          </p>
+                          <p
+                            className="text-xs mt-0.5 flex flex-wrap gap-x-3"
+                            style={{ color: "#86b9b0" }}
+                          >
+                            <span>Status: {p.status}</span>
+                            {p.payment_mode && (
+                              <span
+                                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium"
+                                style={{
+                                  background:
+                                    p.payment_mode === "GCash"
+                                      ? "#ede9fe"
+                                      : p.payment_mode === "Cash"
+                                        ? "#d0f0e8"
+                                        : "#e0efee",
+                                  color:
+                                    p.payment_mode === "GCash"
+                                      ? "#4c1d95"
+                                      : p.payment_mode === "Cash"
+                                        ? "#0a5940"
+                                        : "#042630",
+                                }}
+                              >
+                                {p.payment_mode}
+                              </span>
+                            )}
+                            {p.paid_date && (
+                              <span>
+                                📅{" "}
+                                {new Date(p.paid_date).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                  },
+                                )}
+                              </span>
+                            )}
+                          </p>
+                          {p.notes && (
+                            <p
+                              className="text-xs mt-1 italic"
+                              style={{ color: "#86b9b0" }}
+                            >
+                              {p.notes}
+                            </p>
+                          )}
+                          {Number(p.commission) > 0 && (
+                            <p
+                              className="text-xs mt-1 font-medium"
+                              style={{ color: "#9d174d" }}
+                            >
+                              Commission: −₱
+                              {Number(p.commission).toLocaleString()} → Net: ₱
+                              {(
+                                Number(p.paid) - Number(p.commission)
+                              ).toLocaleString()}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => openEditPayment(p)}
+                            className="p-1.5 rounded-lg"
+                            style={{ background: "#fef9c3" }}
+                          >
+                            <Pencil
+                              className="w-3.5 h-3.5"
+                              style={{ color: "#854d0e" }}
+                            />
+                          </button>
+                          <button
+                            onClick={() => handleDeletePayment(p.id)}
+                            className="p-1.5 rounded-lg"
+                            style={{ background: "#fee2e2" }}
+                          >
+                            <Trash2
+                              className="w-3.5 h-3.5"
+                              style={{ color: "#991b1b" }}
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             )}
           </Card>
@@ -900,30 +947,65 @@ const ProjectDetails = () => {
           onClose={() => setShowPaymentModal(false)}
         >
           <div className="space-y-4">
+            {/* Info box — only in Add mode */}
+            {!editingPaymentId && (
+              <div
+                className="p-3 rounded-lg text-sm space-y-1"
+                style={{ background: "#e0efee" }}
+              >
+                <div className="flex justify-between">
+                  <span style={{ color: "#042630" }}>Total Contract:</span>
+                  <span className="font-semibold" style={{ color: "#042630" }}>
+                    ₱{Number(paymentForm.total || 0).toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: "#042630" }}>Already Paid:</span>
+                  <span className="font-semibold" style={{ color: "#0a5940" }}>
+                    ₱{Number(paymentForm._alreadyPaid || 0).toLocaleString()}
+                  </span>
+                </div>
+                <div
+                  className="flex justify-between border-t pt-1"
+                  style={{ borderColor: "#86b9b0" }}
+                >
+                  <span className="font-medium" style={{ color: "#991b1b" }}>
+                    Remaining Balance:
+                  </span>
+                  <span className="font-bold" style={{ color: "#991b1b" }}>
+                    ₱{Number(paymentForm._remaining || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+            {editingPaymentId && (
+              <div>
+                <label
+                  className="block text-sm font-medium mb-1"
+                  style={{ color: "#041421" }}
+                >
+                  Total Amount (₱)
+                </label>
+                <input
+                  type="number"
+                  value={paymentForm.total}
+                  onChange={(e) =>
+                    setPaymentForm((f) => ({ ...f, total: e.target.value }))
+                  }
+                  placeholder="e.g. 50000"
+                  className={inputCls}
+                  style={inputStyle}
+                />
+              </div>
+            )}
             <div>
               <label
                 className="block text-sm font-medium mb-1"
                 style={{ color: "#041421" }}
               >
-                Total Amount (₱)
-              </label>
-              <input
-                type="number"
-                value={paymentForm.total}
-                onChange={(e) =>
-                  setPaymentForm((f) => ({ ...f, total: e.target.value }))
-                }
-                placeholder="e.g. 50000"
-                className={inputCls}
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label
-                className="block text-sm font-medium mb-1"
-                style={{ color: "#041421" }}
-              >
-                Amount Paid (₱)
+                {editingPaymentId
+                  ? "Amount Paid (₱)"
+                  : "New Payment Amount (₱)"}
               </label>
               <input
                 type="number"
@@ -931,10 +1013,54 @@ const ProjectDetails = () => {
                 onChange={(e) =>
                   setPaymentForm((f) => ({ ...f, paid: e.target.value }))
                 }
-                placeholder="e.g. 25000"
+                placeholder={
+                  !editingPaymentId && Number(paymentForm._remaining) > 0
+                    ? `Max: ₱${Number(paymentForm._remaining).toLocaleString()}`
+                    : "e.g. 7500"
+                }
                 className={inputCls}
                 style={inputStyle}
               />
+              {Number(paymentForm.paid) > 0 &&
+                Number(paymentForm.total) > 0 && (
+                  <p
+                    className="text-xs mt-1 font-medium"
+                    style={{
+                      color:
+                        getAutoStatus(
+                          editingPaymentId
+                            ? paymentForm.paid
+                            : Number(paymentForm._alreadyPaid || 0) +
+                                Number(paymentForm.paid),
+                          paymentForm.total,
+                        ) === "Paid"
+                          ? "#0a5940"
+                          : "#854d0e",
+                    }}
+                  >
+                    Project status will be:{" "}
+                    <strong>
+                      {getAutoStatus(
+                        editingPaymentId
+                          ? paymentForm.paid
+                          : Number(paymentForm._alreadyPaid || 0) +
+                              Number(paymentForm.paid),
+                        paymentForm.total,
+                      )}
+                    </strong>
+                    {!editingPaymentId && (
+                      <>
+                        {" "}
+                        — Remaining after: ₱
+                        {Math.max(
+                          Number(paymentForm._remaining || 0) -
+                            Number(paymentForm.paid),
+                          0,
+                        ).toLocaleString()}
+                      </>
+                    )}
+                  </p>
+                )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -944,18 +1070,56 @@ const ProjectDetails = () => {
                 >
                   Status
                 </label>
-                <select
-                  value={paymentForm.status}
-                  onChange={(e) =>
-                    setPaymentForm((f) => ({ ...f, status: e.target.value }))
-                  }
-                  className={inputCls}
-                  style={inputStyle}
+                <div
+                  className="px-3 py-2 rounded-lg text-sm font-semibold"
+                  style={{
+                    background:
+                      getAutoStatus(
+                        editingPaymentId
+                          ? paymentForm.paid
+                          : Number(paymentForm._alreadyPaid || 0) +
+                              Number(paymentForm.paid || 0),
+                        paymentForm.total,
+                      ) === "Paid"
+                        ? "#d0f0e8"
+                        : getAutoStatus(
+                              editingPaymentId
+                                ? paymentForm.paid
+                                : Number(paymentForm._alreadyPaid || 0) +
+                                    Number(paymentForm.paid || 0),
+                              paymentForm.total,
+                            ) === "Partial"
+                          ? "#fef9c3"
+                          : "#fee2e2",
+                    color:
+                      getAutoStatus(
+                        editingPaymentId
+                          ? paymentForm.paid
+                          : Number(paymentForm._alreadyPaid || 0) +
+                              Number(paymentForm.paid || 0),
+                        paymentForm.total,
+                      ) === "Paid"
+                        ? "#0a5940"
+                        : getAutoStatus(
+                              editingPaymentId
+                                ? paymentForm.paid
+                                : Number(paymentForm._alreadyPaid || 0) +
+                                    Number(paymentForm.paid || 0),
+                              paymentForm.total,
+                            ) === "Partial"
+                          ? "#854d0e"
+                          : "#991b1b",
+                  }}
                 >
-                  <option>Unpaid</option>
-                  <option>Partial</option>
-                  <option>Paid</option>
-                </select>
+                  {getAutoStatus(
+                    editingPaymentId
+                      ? paymentForm.paid
+                      : Number(paymentForm._alreadyPaid || 0) +
+                          Number(paymentForm.paid || 0),
+                    paymentForm.total,
+                  )}{" "}
+                  (auto)
+                </div>
               </div>
               <div>
                 <label
