@@ -99,7 +99,11 @@ const Dashboard = () => {
     return acc;
   }, {});
   const chartData = projects.map((p) => ({
-    name: p.name.split(" ").slice(0, 2).join(" "),
+    name: p.name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase(),
     Budget: Number(p.budget) || 0,
     Paid: earningsByProject[p.id] || 0,
   }));
