@@ -56,12 +56,20 @@ const Analytics = () => {
     return acc;
   }, {});
   const earningsData = projects.map((p) => ({
-    name: p.name.split(" ").slice(0, 2).join(" "),
+    name: p.name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase(),
     Earned: earningsByProject[p.id] || 0,
     Budget: Number(p.budget) || 0,
   }));
   const progressData = projects.map((p) => ({
-    name: p.name.split(" ").slice(0, 2).join(" "),
+    name: p.name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase(),
     progress: p.progress,
   }));
   const statusData = [
