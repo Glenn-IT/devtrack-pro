@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Backend environment variables — never commit these!
+backend/.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
