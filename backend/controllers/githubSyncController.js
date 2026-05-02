@@ -22,8 +22,8 @@ const syncFromGitHub = async (req, res) => {
         .json({ error: "No GitHub repo URL saved for this project." });
     }
 
-    // 2. Convert GitHub repo URL → raw Progress.md URL
-    // e.g. https://github.com/Glenn-IT/my-repo  →  https://raw.githubusercontent.com/Glenn-IT/my-repo/main/Progress.md
+    // 2. Convert GitHub repo URL → extract owner/repo
+    // e.g. https://github.com/Glenn-IT/my-repo  →  owner/repo
     let repoUrl = project.repo
       .trim()
       .replace(/\/$/, "")
@@ -44,42 +44,52 @@ const syncFromGitHub = async (req, res) => {
     }
 
     const ownerRepo = match[1];
-    const repoName = ownerRepo.split("/")[1]; // e.g. "LMS_ASA"
 
-    // Build candidate URLs to try (both branches, root and subfolder matching repo name)
-    const branches = ["main", "master"];
-    const paths = ["Progress.md", `${repoName}/Progress.md`];
-    const candidateUrls = [];
-    for (const branch of branches) {
-      for (const path of paths) {
-        candidateUrls.push(
-          `https://raw.githubusercontent.com/${ownerRepo}/${branch}/${path}`,
-        );
-      }
-    }
-
-    // 3. Fetch the raw file content — try each candidate URL until one works
+    // 3. Use GitHub API tree to find Progress.md anywhere in the repo (any branch, any subfolder)
     let fileContent = null;
     let rawUrl = null;
-    for (const url of candidateUrls) {
+
+    const branches = ["main", "master"];
+    for (const branch of branches) {
+      if (fileContent) break;
+
+      // Get the full file tree for this branch
+      let tree;
       try {
-        const response = await axios.get(url, { timeout: 8000 });
+        const treeRes = await axios.get(
+          `https://api.github.com/repos/${ownerRepo}/git/trees/${branch}?recursive=1`,
+          {
+            timeout: 10000,
+            headers: { Accept: "application/vnd.github+json" },
+          },
+        );
+        tree = treeRes.data.tree;
+      } catch (treeErr) {
+        // Branch doesn't exist or API error — try next branch
+        continue;
+      }
+
+      // Find any file named Progress.md (case-insensitive)
+      const entry = tree.find(
+        (f) =>
+          f.type === "blob" && f.path.toLowerCase().endsWith("progress.md"),
+      );
+
+      if (!entry) continue;
+
+      rawUrl = `https://raw.githubusercontent.com/${ownerRepo}/${branch}/${entry.path}`;
+      try {
+        const response = await axios.get(rawUrl, { timeout: 8000 });
         fileContent = response.data;
-        rawUrl = url;
-        break;
       } catch (fetchErr) {
-        if (!fetchErr.response || fetchErr.response.status !== 404) {
-          return res
-            .status(502)
-            .json({ error: "Failed to fetch Progress.md from GitHub." });
-        }
-        // 404 → try next candidate
+        rawUrl = null;
+        continue;
       }
     }
 
     if (!fileContent) {
       return res.status(404).json({
-        error: `Progress.md not found. Tried: ${candidateUrls.join(", ")}`,
+        error: `Progress.md not found in any branch or subfolder of the repo.`,
       });
     }
 
