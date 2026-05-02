@@ -44,22 +44,43 @@ const syncFromGitHub = async (req, res) => {
     }
 
     const ownerRepo = match[1];
-    const rawUrl = `https://raw.githubusercontent.com/${ownerRepo}/main/Progress.md`;
+    const repoName = ownerRepo.split("/")[1]; // e.g. "LMS_ASA"
 
-    // 3. Fetch the raw file content
-    let fileContent;
-    try {
-      const response = await axios.get(rawUrl, { timeout: 8000 });
-      fileContent = response.data;
-    } catch (fetchErr) {
-      if (fetchErr.response && fetchErr.response.status === 404) {
-        return res
-          .status(404)
-          .json({ error: "Progress.md not found in the repo's main branch." });
+    // Build candidate URLs to try (both branches, root and subfolder matching repo name)
+    const branches = ["main", "master"];
+    const paths = ["Progress.md", `${repoName}/Progress.md`];
+    const candidateUrls = [];
+    for (const branch of branches) {
+      for (const path of paths) {
+        candidateUrls.push(
+          `https://raw.githubusercontent.com/${ownerRepo}/${branch}/${path}`,
+        );
       }
-      return res
-        .status(502)
-        .json({ error: "Failed to fetch Progress.md from GitHub." });
+    }
+
+    // 3. Fetch the raw file content — try each candidate URL until one works
+    let fileContent = null;
+    let rawUrl = null;
+    for (const url of candidateUrls) {
+      try {
+        const response = await axios.get(url, { timeout: 8000 });
+        fileContent = response.data;
+        rawUrl = url;
+        break;
+      } catch (fetchErr) {
+        if (!fetchErr.response || fetchErr.response.status !== 404) {
+          return res
+            .status(502)
+            .json({ error: "Failed to fetch Progress.md from GitHub." });
+        }
+        // 404 → try next candidate
+      }
+    }
+
+    if (!fileContent) {
+      return res.status(404).json({
+        error: `Progress.md not found. Tried: ${candidateUrls.join(", ")}`,
+      });
     }
 
     // 4. Parse the fields from the file
@@ -75,20 +96,16 @@ const syncFromGitHub = async (req, res) => {
     const rawNote = parseField(fileContent, "note");
 
     if (!rawProgress) {
-      return res
-        .status(422)
-        .json({
-          error: "Progress.md found but missing required field: progress",
-        });
+      return res.status(422).json({
+        error: "Progress.md found but missing required field: progress",
+      });
     }
 
     const progress = Math.min(100, Math.max(0, parseInt(rawProgress, 10)));
     if (isNaN(progress)) {
-      return res
-        .status(422)
-        .json({
-          error: "progress value in Progress.md is not a valid number.",
-        });
+      return res.status(422).json({
+        error: "progress value in Progress.md is not a valid number.",
+      });
     }
 
     // Validate status if provided
