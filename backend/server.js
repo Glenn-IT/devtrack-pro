@@ -9,7 +9,11 @@ app.use(
   cors({
     // Allow any localhost port — handles Vite auto port changes (5173, 5174, 5175...)
     origin: (origin, callback) => {
-      if (!origin || /^http:\/\/localhost:\d+$/.test(origin)) {
+      const allowed = [
+        /^http:\/\/localhost:\d+$/,
+        /^https:\/\/.*\.vercel\.app$/,
+      ];
+      if (!origin || allowed.some((r) => r.test(origin))) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
