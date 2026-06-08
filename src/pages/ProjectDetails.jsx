@@ -628,19 +628,19 @@ const ProjectDetails = () => {
               <div className="space-y-3">
                 {(() => {
                   const projectTotal = Number(project?.budget) || 0;
-                  const totalPaidSoFar = payments.reduce(
-                    (s, p) => s + Number(p.paid),
-                    0,
+                  // Sort chronologically (oldest first) to compute cumulative paid per record
+                  const chronological = [...payments].sort(
+                    (a, b) => new Date(a.paid_date) - new Date(b.paid_date),
                   );
-                  return payments.map((p, idx) => {
-                    // Cumulative paid up to and including this record (by insertion order)
-                    const paidUpToHere = payments
-                      .slice(0, idx + 1)
-                      .reduce((s, r) => s + Number(r.paid), 0);
-                    const remainingAfter = Math.max(
-                      projectTotal - paidUpToHere,
-                      0,
-                    );
+                  // Build a map: payment id → remaining after that payment (chronological order)
+                  const remainingMap = {};
+                  let cumulative = 0;
+                  chronological.forEach((r) => {
+                    cumulative += Number(r.paid);
+                    remainingMap[r.id] = Math.max(projectTotal - cumulative, 0);
+                  });
+                  return payments.map((p) => {
+                    const remainingAfter = remainingMap[p.id] ?? 0;
                     return (
                       <div
                         key={p.id}
