@@ -99,15 +99,17 @@ Save this file — you'll import it into Railway's MySQL in Step 3.
 
 ### Set Environment Variables
 
-11. Click on your Express service → **Variables** tab
-12. Add these manually:
+11. Click on your **Express service** → **Variables** tab
+12. Add only these two manually (the MySQL vars are auto-injected from the Railway DB):
 
 ```
 JWT_SECRET=your_strong_random_secret_here_min_32_chars
 JWT_EXPIRES_IN=7d
 ```
 
-> `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, and `PORT` are injected automatically by Railway.
+> Railway auto-injects `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`, and `PORT`
+> into your Express service — you do NOT need to set DB variables manually.
+> The `backend/config/db.js` has been updated to read Railway's variable names automatically.
 
 13. Note your Railway backend public URL — looks like:
     `https://devtrack-pro-api-production.up.railway.app`
