@@ -31,6 +31,7 @@ app.use("/api/tasks", require("./routes/tasks"));
 app.use("/api/milestones", require("./routes/milestones"));
 app.use("/api/payments", require("./routes/payments"));
 app.use("/api/meetings", require("./routes/meetings"));
+app.use("/api/weekly", require("./routes/weekly"));
 app.use("/api/auth", require("./routes/auth"));
 
 // ─── Health Check ─────────────────────────────────────────

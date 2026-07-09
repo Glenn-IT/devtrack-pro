@@ -87,6 +87,24 @@ CREATE TABLE IF NOT EXISTS meetings (
 );
 
 -- ============================================================
+-- TABLE: weekly_entries (Weekly Tracker — from Neko Sysdev Tracker)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS weekly_entries (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  system_name VARCHAR(255) NOT NULL,
+  category VARCHAR(100) DEFAULT 'Online System',
+  week VARCHAR(50) NOT NULL,
+  recommendation VARCHAR(255),
+  recom_status VARCHAR(50) DEFAULT 'Not Yet',
+  tutorial_vids VARCHAR(255),
+  tut_status VARCHAR(50) DEFAULT 'Not Yet',
+  checking_date DATE,
+  system_checking_status VARCHAR(50) DEFAULT 'Not Yet',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ============================================================
 -- SEED DATA — Projects
 -- ============================================================
 INSERT INTO projects (id, name, client, status, description, repo, progress, budget, paid, start_date, end_date) VALUES

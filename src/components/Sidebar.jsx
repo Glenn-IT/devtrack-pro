@@ -4,6 +4,7 @@ import {
   FolderKanban,
   CreditCard,
   CalendarDays,
+  ClipboardCheck,
   BarChart3,
   X,
 } from "lucide-react";
@@ -13,6 +14,7 @@ const navItems = [
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/payments", label: "Payments", icon: CreditCard },
   { to: "/meetings", label: "Meetings", icon: CalendarDays },
+  { to: "/weekly-tracker", label: "Weekly Tracker", icon: ClipboardCheck },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
 ];
 

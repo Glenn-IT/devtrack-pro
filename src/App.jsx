@@ -5,6 +5,7 @@ import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
 import Payments from "./pages/Payments";
 import Meetings from "./pages/Meetings";
+import WeeklyTracker from "./pages/WeeklyTracker";
 import Analytics from "./pages/Analytics";
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Route path="/projects/:id" element={<ProjectDetails />} />
           <Route path="/payments" element={<Payments />} />
           <Route path="/meetings" element={<Meetings />} />
+          <Route path="/weekly-tracker" element={<WeeklyTracker />} />
           <Route path="/analytics" element={<Analytics />} />
         </Route>
       </Routes>
