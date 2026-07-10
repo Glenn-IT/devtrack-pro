@@ -6,6 +6,7 @@ import {
   CalendarDays,
   ClipboardCheck,
   BarChart3,
+  Settings as SettingsIcon,
   X,
 } from "lucide-react";
 
@@ -16,6 +17,7 @@ const navItems = [
   { to: "/meetings", label: "Meetings", icon: CalendarDays },
   { to: "/weekly-tracker", label: "Weekly Tracker", icon: ClipboardCheck },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
 const Sidebar = ({ open, onClose }) => (

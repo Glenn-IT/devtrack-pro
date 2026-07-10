@@ -1,6 +1,8 @@
+const crypto = require("crypto");
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { sendPasswordResetEmail } = require("../config/mailer");
 
 // POST /api/auth/register
 const register = async (req, res) => {
@@ -81,4 +83,59 @@ const getMe = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe };
+// POST /api/auth/forgot-password
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+
+  try {
+    const [users] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
+
+    // Always respond the same way, whether or not the email exists,
+    // so requests can't be used to probe which emails are registered.
+    if (users.length > 0) {
+      const token = crypto.randomBytes(32).toString("hex");
+      const expires = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+
+      await db.query(
+        "UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?",
+        [token, expires, users[0].id],
+      );
+
+      const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+      await sendPasswordResetEmail(email, resetLink);
+    }
+
+    res.json({ message: "If that email is registered, a reset link has been sent." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// POST /api/auth/reset-password/:token
+const resetPassword = async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: "New password is required" });
+
+  try {
+    const [users] = await db.query(
+      "SELECT id FROM users WHERE reset_token = ? AND reset_token_expires > NOW()",
+      [token],
+    );
+    if (users.length === 0)
+      return res.status(400).json({ error: "Reset link is invalid or has expired" });
+
+    const hashed = await bcrypt.hash(password, 10);
+    await db.query(
+      "UPDATE users SET password = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?",
+      [hashed, users[0].id],
+    );
+
+    res.json({ message: "Password reset successfully. You can now log in." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { register, login, getMe, forgotPassword, resetPassword };
