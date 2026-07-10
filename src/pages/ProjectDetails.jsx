@@ -20,6 +20,7 @@ import {
   deletePayment,
 } from "../api/paymentsApi";
 import { syncFromGitHub } from "../api/githubSyncApi";
+import { useAuth } from "../context/AuthContext";
 import Card from "../components/Card";
 import StatusBadge from "../components/StatusBadge";
 import Modal from "../components/Modal";
@@ -53,6 +54,7 @@ const getAutoStatus = (paid, total) => {
 const ProjectDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
 
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -600,6 +602,7 @@ const ProjectDetails = () => {
           </Card>
 
           {/* Payments */}
+          {isAdmin && (
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3
@@ -755,6 +758,7 @@ const ProjectDetails = () => {
               </div>
             )}
           </Card>
+          )}
         </div>
 
         {/* Right column — Milestones */}

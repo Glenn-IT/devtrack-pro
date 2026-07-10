@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const { logActivity } = require("../utils/activityLogger");
 
 // GET /api/projects
 const getAllProjects = async (req, res) => {
@@ -68,6 +69,7 @@ const createProject = async (req, res) => {
     const [newProject] = await db.query("SELECT * FROM projects WHERE id = ?", [
       result.insertId,
     ]);
+    await logActivity(req, "project_created", `Created project "${name}"`, "folder-plus");
     res.status(201).json(newProject[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -110,6 +112,7 @@ const updateProject = async (req, res) => {
     ]);
     if (updated.length === 0)
       return res.status(404).json({ error: "Project not found" });
+    await logActivity(req, "project_updated", `Updated project "${updated[0].name}"`, "pencil");
     res.json(updated[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -119,11 +122,20 @@ const updateProject = async (req, res) => {
 // DELETE /api/projects/:id
 const deleteProject = async (req, res) => {
   try {
+    const [existing] = await db.query("SELECT name FROM projects WHERE id = ?", [
+      req.params.id,
+    ]);
     const [result] = await db.query("DELETE FROM projects WHERE id = ?", [
       req.params.id,
     ]);
     if (result.affectedRows === 0)
       return res.status(404).json({ error: "Project not found" });
+    await logActivity(
+      req,
+      "project_deleted",
+      `Deleted project "${existing[0]?.name || req.params.id}"`,
+      "trash-2",
+    );
     res.json({ message: "Project deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });

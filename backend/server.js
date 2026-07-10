@@ -34,6 +34,7 @@ app.use("/api/meetings", require("./routes/meetings"));
 app.use("/api/weekly", require("./routes/weekly"));
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/export", require("./routes/export"));
+app.use("/api/activities", require("./routes/activities"));
 
 // ─── Health Check ─────────────────────────────────────────
 app.get("/", (req, res) => {

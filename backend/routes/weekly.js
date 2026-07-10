@@ -6,10 +6,11 @@ const {
   updateWeeklyEntry,
   deleteWeeklyEntry,
 } = require("../controllers/weeklyController");
+const { protect } = require("../middleware/authMiddleware");
 
-router.get("/", getAllWeeklyEntries);
-router.post("/", createWeeklyEntry);
-router.put("/:id", updateWeeklyEntry);
-router.delete("/:id", deleteWeeklyEntry);
+router.get("/", protect, getAllWeeklyEntries);
+router.post("/", protect, createWeeklyEntry);
+router.put("/:id", protect, updateWeeklyEntry);
+router.delete("/:id", protect, deleteWeeklyEntry);
 
 module.exports = router;

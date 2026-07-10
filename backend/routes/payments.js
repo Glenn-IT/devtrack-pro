@@ -6,10 +6,11 @@ const {
   updatePayment,
   deletePayment,
 } = require("../controllers/paymentsController");
+const { protect, requireAdmin } = require("../middleware/authMiddleware");
 
-router.get("/", getAllPayments);
-router.post("/", createPayment);
-router.put("/:id", updatePayment);
-router.delete("/:id", deletePayment);
+router.get("/", protect, getAllPayments);
+router.post("/", protect, requireAdmin, createPayment);
+router.put("/:id", protect, requireAdmin, updatePayment);
+router.delete("/:id", protect, requireAdmin, deletePayment);
 
 module.exports = router;

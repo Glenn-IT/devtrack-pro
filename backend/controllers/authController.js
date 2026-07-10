@@ -6,7 +6,7 @@ const { sendPasswordResetEmail } = require("../config/mailer");
 
 // POST /api/auth/register
 const register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body;
   if (!name || !email || !password)
     return res.status(400).json({ error: "All fields are required" });
 
@@ -18,18 +18,22 @@ const register = async (req, res) => {
       return res.status(409).json({ error: "Email already registered" });
 
     const hashed = await bcrypt.hash(password, 10);
+    const finalRole = role === "admin" ? "admin" : "user";
     const [result] = await db.query(
-      "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-      [name, email, hashed],
+      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
+      [name, email, hashed, finalRole],
     );
 
     const token = jwt.sign(
-      { id: result.insertId, name, email },
+      { id: result.insertId, name, email, role: finalRole },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN },
     );
 
-    res.status(201).json({ token, user: { id: result.insertId, name, email } });
+    res.status(201).json({
+      token,
+      user: { id: result.insertId, name, email, role: finalRole },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -54,14 +58,14 @@ const login = async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
 
     const token = jwt.sign(
-      { id: user.id, name: user.name, email: user.email },
+      { id: user.id, name: user.name, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN },
     );
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -72,7 +76,7 @@ const login = async (req, res) => {
 const getMe = async (req, res) => {
   try {
     const [users] = await db.query(
-      "SELECT id, name, email, created_at FROM users WHERE id = ?",
+      "SELECT id, name, email, role, created_at FROM users WHERE id = ?",
       [req.user.id],
     );
     if (users.length === 0)

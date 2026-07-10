@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { getProjects } from "../api/projectsApi";
 import { getPayments } from "../api/paymentsApi";
+import { useAuth } from "../context/AuthContext";
 import Card from "../components/Card";
 import StatusBadge from "../components/StatusBadge";
 import {
@@ -46,6 +47,7 @@ const StatCard = ({ label, value, icon: Icon, bg, fg, sub }) => (
 );
 
 const Dashboard = () => {
+  const { isAdmin } = useAuth();
   const [projects, setProjects] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +120,9 @@ const Dashboard = () => {
           Welcome back, Admin! Here is your overview.
         </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div
+        className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? "xl:grid-cols-4" : "xl:grid-cols-3"} gap-4`}
+      >
         <StatCard
           label="Total Projects"
           value={projects.length}
@@ -140,14 +144,16 @@ const Dashboard = () => {
           bg="#d0f0e8"
           fg="#0a5940"
         />
-        <StatCard
-          label="Total Earnings"
-          value={`₱${totalEarnings.toLocaleString()}`}
-          icon={DollarSign}
-          bg="#042630"
-          fg="#86b9b0"
-          sub="Paid so far"
-        />
+        {isAdmin && (
+          <StatCard
+            label="Total Earnings"
+            value={`₱${totalEarnings.toLocaleString()}`}
+            icon={DollarSign}
+            bg="#042630"
+            fg="#86b9b0"
+            sub="Paid so far"
+          />
+        )}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 p-6">

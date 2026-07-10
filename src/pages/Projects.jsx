@@ -9,6 +9,7 @@ import {
 import Card from "../components/Card";
 import StatusBadge from "../components/StatusBadge";
 import Modal from "../components/Modal";
+import { useAuth } from "../context/AuthContext";
 import {
   Plus,
   ExternalLink,
@@ -149,6 +150,7 @@ const ProjectFormFields = ({ form, setForm }) => (
 );
 
 const Projects = () => {
+  const { isAdmin } = useAuth();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -280,15 +282,17 @@ const Projects = () => {
             {projects.length} total projects
           </p>
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-white transition-colors shadow-sm"
-          style={{ background: "#4c7273" }}
-          onMouseOver={(e) => (e.currentTarget.style.background = "#042630")}
-          onMouseOut={(e) => (e.currentTarget.style.background = "#4c7273")}
-        >
-          <Plus className="w-4 h-4" /> Add Project
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-white transition-colors shadow-sm"
+            style={{ background: "#4c7273" }}
+            onMouseOver={(e) => (e.currentTarget.style.background = "#042630")}
+            onMouseOut={(e) => (e.currentTarget.style.background = "#4c7273")}
+          >
+            <Plus className="w-4 h-4" /> Add Project
+          </button>
+        )}
       </div>
 
       <Card className="p-4 flex flex-col sm:flex-row gap-3">
@@ -408,20 +412,24 @@ const Projects = () => {
                 <ExternalLink className="w-3.5 h-3.5" /> GitHub
               </a>
               <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => openEdit(p)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                  style={{ background: "#fef9c3", color: "#854d0e" }}
-                >
-                  <Pencil className="w-3.5 h-3.5" /> Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(p.id, p.name)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                  style={{ background: "#fee2e2", color: "#991b1b" }}
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> Delete
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => openEdit(p)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    style={{ background: "#fef9c3", color: "#854d0e" }}
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                )}
+                {isAdmin && (
+                  <button
+                    onClick={() => handleDelete(p.id, p.name)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    style={{ background: "#fee2e2", color: "#991b1b" }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                )}
                 <button
                   onClick={() => navigate(`/projects/${p.id}`)}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"

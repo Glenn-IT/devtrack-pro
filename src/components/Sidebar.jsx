@@ -7,20 +7,27 @@ import {
   ClipboardCheck,
   BarChart3,
   Settings as SettingsIcon,
+  History,
   X,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/projects", label: "Projects", icon: FolderKanban },
-  { to: "/payments", label: "Payments", icon: CreditCard },
+  { to: "/payments", label: "Payments", icon: CreditCard, adminOnly: true },
   { to: "/meetings", label: "Meetings", icon: CalendarDays },
   { to: "/weekly-tracker", label: "Weekly Tracker", icon: ClipboardCheck },
-  { to: "/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/settings", label: "Settings", icon: SettingsIcon },
+  { to: "/analytics", label: "Analytics", icon: BarChart3, adminOnly: true },
+  { to: "/activity-log", label: "Activity Log", icon: History, adminOnly: true },
+  { to: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true },
 ];
 
-const Sidebar = ({ open, onClose }) => (
+const Sidebar = ({ open, onClose }) => {
+  const { isAdmin } = useAuth();
+  const visibleItems = navItems.filter((item) => !item.adminOnly || isAdmin);
+
+  return (
   <>
     {open && (
       <div
@@ -64,7 +71,7 @@ const Sidebar = ({ open, onClose }) => (
 
       {/* Nav */}
       <nav className="mt-5 px-3 flex-1 space-y-1">
-        {navItems.map(({ to, label, icon: Icon }) => (
+        {visibleItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -103,5 +110,6 @@ const Sidebar = ({ open, onClose }) => (
       </div>
     </aside>
   </>
-);
+  );
+};
 export default Sidebar;
