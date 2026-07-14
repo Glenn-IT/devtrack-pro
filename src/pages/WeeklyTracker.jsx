@@ -73,6 +73,99 @@ function weekSortKey(week) {
   return m ? parseInt(m[1], 10) : 999;
 }
 
+const MiniField = ({ label, children }) => (
+  <div>
+    <p
+      className="text-[10px] font-semibold uppercase tracking-wide mb-1"
+      style={{ color: "#86b9b0" }}
+    >
+      {label}
+    </p>
+    {children}
+  </div>
+);
+
+const WeeklyCard = ({ r, onEdit, onDelete }) => (
+  <div
+    className="rounded-xl border p-4 space-y-3"
+    style={{ borderColor: "#d0d6d6" }}
+  >
+    <div className="flex items-start justify-between gap-3">
+      <h4 className="text-sm font-semibold" style={{ color: "#041421" }}>
+        {r.system_name}
+      </h4>
+      <div className="flex gap-1.5 flex-shrink-0">
+        <button
+          onClick={() => onEdit(r)}
+          className="p-1.5 rounded-lg"
+          style={{ background: "#fef9c3" }}
+          aria-label="Edit"
+        >
+          <Pencil className="w-3.5 h-3.5" style={{ color: "#854d0e" }} />
+        </button>
+        <button
+          onClick={() => onDelete(r)}
+          className="p-1.5 rounded-lg"
+          style={{ background: "#fee2e2" }}
+          aria-label="Delete"
+        >
+          <Trash2 className="w-3.5 h-3.5" style={{ color: "#991b1b" }} />
+        </button>
+      </div>
+    </div>
+
+    {r.recommendation ? (
+      <div
+        className="pl-3 border-l-2 text-sm leading-snug"
+        style={{ borderColor: "#86b9b0", color: "#041421" }}
+      >
+        {r.recommendation}
+      </div>
+    ) : (
+      <span className="text-sm italic" style={{ color: "#86b9b0" }}>
+        No recommendation
+      </span>
+    )}
+
+    <div className="grid grid-cols-2 gap-3">
+      <MiniField label="Recom Status">
+        <StatusBadge status={r.recom_status} />
+      </MiniField>
+      <MiniField label="Recom Implemented">
+        <StatusBadge status={r.recom_implemented} />
+      </MiniField>
+      <MiniField label="Activity Status">
+        <StatusBadge status={r.activity_status} />
+      </MiniField>
+      <MiniField label="Activity Implemented">
+        <StatusBadge status={r.activity_implemented} />
+      </MiniField>
+      <MiniField label="Tutorial Status">
+        <StatusBadge status={r.tut_status} />
+      </MiniField>
+      <MiniField label="Checking Status">
+        <StatusBadge status={r.system_checking_status} />
+      </MiniField>
+    </div>
+
+    <div
+      className="flex items-center justify-between pt-2 border-t text-xs"
+      style={{ borderColor: "#f0f4f4", color: "#4c7273" }}
+    >
+      <span>{r.tutorial_vids || "No tutorial vids"}</span>
+      <span>
+        {r.checking_date
+          ? new Date(r.checking_date).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })
+          : "No checking date"}
+      </span>
+    </div>
+  </div>
+);
+
 const FormField = ({ label, children }) => (
   <div>
     <label
@@ -408,14 +501,32 @@ const WeeklyTracker = () => {
               {grouped.map[cat].length} systems
             </span>
           </div>
-          <div className="overflow-x-auto">
+          {/* Card view (small screens) */}
+          <div className="md:hidden p-4 space-y-3">
+            {grouped.map[cat].map((r) => (
+              <WeeklyCard
+                key={r.id}
+                r={r}
+                onEdit={openEdit}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+
+          {/* Table view (medium screens and up) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm" style={{ minWidth: "1400px" }}>
               <thead>
                 <tr
                   className="text-left text-[11px] uppercase font-bold whitespace-nowrap"
                   style={{ color: "#86b9b0" }}
                 >
-                  <th className="px-5 py-2.5 max-w-xs">Capstone System</th>
+                  <th
+                    className="px-5 py-2.5 max-w-xs sticky left-0 z-10"
+                    style={{ background: "#f0f4f4" }}
+                  >
+                    Capstone System
+                  </th>
                   <th className="px-5 py-2.5 max-w-xs">Recommendation</th>
                   <th className="px-5 py-2.5">Recom Status</th>
                   <th className="px-5 py-2.5">Recom Implemented</th>
@@ -425,27 +536,47 @@ const WeeklyTracker = () => {
                   <th className="px-5 py-2.5">Tut Status</th>
                   <th className="px-5 py-2.5">Checking Date</th>
                   <th className="px-5 py-2.5">Checking Status</th>
-                  <th className="px-5 py-2.5"></th>
+                  <th
+                    className="px-5 py-2.5 sticky right-0 z-10"
+                    style={{
+                      background: "#f0f4f4",
+                      boxShadow: "-4px 0 6px -4px rgba(4,20,33,0.15)",
+                    }}
+                  >
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {grouped.map[cat].map((r) => (
                   <tr
                     key={r.id}
-                    className="border-t hover:bg-gray-50 transition-colors whitespace-nowrap"
+                    className="border-t hover:bg-gray-50 transition-colors whitespace-nowrap group"
                     style={{ borderColor: "#f0f4f4" }}
                   >
                     <td
-                      className="px-5 py-3 font-semibold whitespace-normal break-words max-w-xs"
+                      className="px-5 py-3 font-semibold whitespace-normal break-words max-w-xs sticky left-0 z-10 bg-white group-hover:bg-gray-50"
                       style={{ color: "#041421" }}
                     >
                       {r.system_name}
                     </td>
-                    <td
-                      className="px-5 py-3 whitespace-normal break-words max-w-xs"
-                      style={{ color: "#4c7273" }}
-                    >
-                      {r.recommendation || "—"}
+                    <td className="px-5 py-3 whitespace-normal max-w-xs">
+                      {r.recommendation ? (
+                        <div
+                          className="pl-3 border-l-2 text-sm leading-snug line-clamp-3"
+                          style={{ borderColor: "#86b9b0", color: "#041421" }}
+                          title={r.recommendation}
+                        >
+                          {r.recommendation}
+                        </div>
+                      ) : (
+                        <span
+                          className="text-sm italic"
+                          style={{ color: "#86b9b0" }}
+                        >
+                          No recommendation
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-3">
                       <StatusBadge status={r.recom_status} />
@@ -476,12 +607,16 @@ const WeeklyTracker = () => {
                     <td className="px-5 py-3">
                       <StatusBadge status={r.system_checking_status} />
                     </td>
-                    <td className="px-5 py-3">
-                      <div className="flex justify-end gap-1.5">
+                    <td
+                      className="px-5 py-3 sticky right-0 z-10 bg-white group-hover:bg-gray-50"
+                      style={{ boxShadow: "-4px 0 6px -4px rgba(4,20,33,0.15)" }}
+                    >
+                      <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                         <button
                           onClick={() => openEdit(r)}
                           className="p-1.5 rounded-lg"
                           style={{ background: "#fef9c3" }}
+                          aria-label="Edit"
                         >
                           <Pencil
                             className="w-3.5 h-3.5"
@@ -492,6 +627,7 @@ const WeeklyTracker = () => {
                           onClick={() => handleDelete(r)}
                           className="p-1.5 rounded-lg"
                           style={{ background: "#fee2e2" }}
+                          aria-label="Delete"
                         >
                           <Trash2
                             className="w-3.5 h-3.5"
