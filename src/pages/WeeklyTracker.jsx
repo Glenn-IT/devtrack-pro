@@ -415,7 +415,7 @@ const WeeklyTracker = () => {
                   className="text-left text-[11px] uppercase font-bold whitespace-nowrap"
                   style={{ color: "#86b9b0" }}
                 >
-                  <th className="px-5 py-2.5">Capstone System</th>
+                  <th className="px-5 py-2.5 max-w-xs">Capstone System</th>
                   <th className="px-5 py-2.5 max-w-xs">Recommendation</th>
                   <th className="px-5 py-2.5">Recom Status</th>
                   <th className="px-5 py-2.5">Recom Implemented</th>
@@ -436,7 +436,7 @@ const WeeklyTracker = () => {
                     style={{ borderColor: "#f0f4f4" }}
                   >
                     <td
-                      className="px-5 py-3 font-semibold"
+                      className="px-5 py-3 font-semibold whitespace-normal break-words max-w-xs"
                       style={{ color: "#041421" }}
                     >
                       {r.system_name}
