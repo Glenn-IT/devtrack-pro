@@ -416,7 +416,7 @@ const WeeklyTracker = () => {
                   style={{ color: "#86b9b0" }}
                 >
                   <th className="px-5 py-2.5">Capstone System</th>
-                  <th className="px-5 py-2.5">Recommendation</th>
+                  <th className="px-5 py-2.5 max-w-xs">Recommendation</th>
                   <th className="px-5 py-2.5">Recom Status</th>
                   <th className="px-5 py-2.5">Recom Implemented</th>
                   <th className="px-5 py-2.5">Activity Status</th>
@@ -441,7 +441,10 @@ const WeeklyTracker = () => {
                     >
                       {r.system_name}
                     </td>
-                    <td className="px-5 py-3" style={{ color: "#4c7273" }}>
+                    <td
+                      className="px-5 py-3 whitespace-normal break-words max-w-xs"
+                      style={{ color: "#4c7273" }}
+                    >
                       {r.recommendation || "—"}
                     </td>
                     <td className="px-5 py-3">
