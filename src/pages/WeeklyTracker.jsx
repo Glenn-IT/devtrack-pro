@@ -59,6 +59,9 @@ const emptyForm = {
   week: "1st Week Activity",
   recommendation: "",
   recom_status: "Not Yet",
+  recom_implemented: "Not Yet",
+  activity_status: "Not Yet",
+  activity_implemented: "Not Yet",
   tutorial_vids: "",
   tut_status: "Not Yet",
   checking_date: "",
@@ -173,6 +176,9 @@ const WeeklyTracker = () => {
       week: r.week || "1st Week Activity",
       recommendation: r.recommendation || "",
       recom_status: r.recom_status || "Not Yet",
+      recom_implemented: r.recom_implemented || "Not Yet",
+      activity_status: r.activity_status || "Not Yet",
+      activity_implemented: r.activity_implemented || "Not Yet",
       tutorial_vids: r.tutorial_vids || "",
       tut_status: r.tut_status || "Not Yet",
       checking_date: r.checking_date ? String(r.checking_date).slice(0, 10) : "",
@@ -403,15 +409,18 @@ const WeeklyTracker = () => {
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" style={{ minWidth: "1400px" }}>
               <thead>
                 <tr
-                  className="text-left text-[11px] uppercase font-bold"
+                  className="text-left text-[11px] uppercase font-bold whitespace-nowrap"
                   style={{ color: "#86b9b0" }}
                 >
                   <th className="px-5 py-2.5">Capstone System</th>
                   <th className="px-5 py-2.5">Recommendation</th>
                   <th className="px-5 py-2.5">Recom Status</th>
+                  <th className="px-5 py-2.5">Recom Implemented</th>
+                  <th className="px-5 py-2.5">Activity Status</th>
+                  <th className="px-5 py-2.5">Activity Implemented</th>
                   <th className="px-5 py-2.5">Tutorial Vids</th>
                   <th className="px-5 py-2.5">Tut Status</th>
                   <th className="px-5 py-2.5">Checking Date</th>
@@ -423,11 +432,11 @@ const WeeklyTracker = () => {
                 {grouped.map[cat].map((r) => (
                   <tr
                     key={r.id}
-                    className="border-t hover:bg-gray-50 transition-colors"
+                    className="border-t hover:bg-gray-50 transition-colors whitespace-nowrap"
                     style={{ borderColor: "#f0f4f4" }}
                   >
                     <td
-                      className="px-5 py-3 font-semibold max-w-xs"
+                      className="px-5 py-3 font-semibold"
                       style={{ color: "#041421" }}
                     >
                       {r.system_name}
@@ -437,6 +446,15 @@ const WeeklyTracker = () => {
                     </td>
                     <td className="px-5 py-3">
                       <StatusBadge status={r.recom_status} />
+                    </td>
+                    <td className="px-5 py-3">
+                      <StatusBadge status={r.recom_implemented} />
+                    </td>
+                    <td className="px-5 py-3">
+                      <StatusBadge status={r.activity_status} />
+                    </td>
+                    <td className="px-5 py-3">
+                      <StatusBadge status={r.activity_implemented} />
                     </td>
                     <td className="px-5 py-3" style={{ color: "#4c7273" }}>
                       {r.tutorial_vids || "—"}
@@ -574,6 +592,64 @@ const WeeklyTracker = () => {
                   ))}
                 </select>
               </FormField>
+              <FormField label="Recom Implemented">
+                <select
+                  value={form.recom_implemented}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      recom_implemented: e.target.value,
+                    }))
+                  }
+                  className={inputCls}
+                  style={inputStyle}
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label="Activity Status">
+                <select
+                  value={form.activity_status}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, activity_status: e.target.value }))
+                  }
+                  className={inputCls}
+                  style={inputStyle}
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+              <FormField label="Activity Implemented">
+                <select
+                  value={form.activity_implemented}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      activity_implemented: e.target.value,
+                    }))
+                  }
+                  className={inputCls}
+                  style={inputStyle}
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <FormField label="Tutorial Status">
                 <select
                   value={form.tut_status}

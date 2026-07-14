@@ -3,7 +3,8 @@ const { logActivity } = require("../utils/activityLogger");
 
 // DATE_FORMAT keeps checking_date a plain YYYY-MM-DD string (no timezone shift)
 const SELECT_COLS = `id, system_name, category, week, recommendation, recom_status,
-  tutorial_vids, tut_status, DATE_FORMAT(checking_date, '%Y-%m-%d') AS checking_date,
+  recom_implemented, activity_status, activity_implemented, tutorial_vids, tut_status,
+  DATE_FORMAT(checking_date, '%Y-%m-%d') AS checking_date,
   system_checking_status, created_at, updated_at`;
 
 // GET /api/weekly
@@ -26,6 +27,9 @@ const createWeeklyEntry = async (req, res) => {
     week,
     recommendation,
     recom_status,
+    recom_implemented,
+    activity_status,
+    activity_implemented,
     tutorial_vids,
     tut_status,
     checking_date,
@@ -36,15 +40,18 @@ const createWeeklyEntry = async (req, res) => {
   try {
     const [result] = await db.query(
       `INSERT INTO weekly_entries
-        (system_name, category, week, recommendation, recom_status,
-         tutorial_vids, tut_status, checking_date, system_checking_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (system_name, category, week, recommendation, recom_status, recom_implemented,
+         activity_status, activity_implemented, tutorial_vids, tut_status, checking_date, system_checking_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         system_name,
         category || "Online System",
         week,
         recommendation || null,
         recom_status || "Not Yet",
+        recom_implemented || "Not Yet",
+        activity_status || "Not Yet",
+        activity_implemented || "Not Yet",
         tutorial_vids || null,
         tut_status || "Not Yet",
         checking_date || null,
@@ -75,6 +82,9 @@ const updateWeeklyEntry = async (req, res) => {
     week,
     recommendation,
     recom_status,
+    recom_implemented,
+    activity_status,
+    activity_implemented,
     tutorial_vids,
     tut_status,
     checking_date,
@@ -83,8 +93,8 @@ const updateWeeklyEntry = async (req, res) => {
   try {
     await db.query(
       `UPDATE weekly_entries SET
-        system_name=?, category=?, week=?, recommendation=?, recom_status=?,
-        tutorial_vids=?, tut_status=?, checking_date=?, system_checking_status=?
+        system_name=?, category=?, week=?, recommendation=?, recom_status=?, recom_implemented=?,
+        activity_status=?, activity_implemented=?, tutorial_vids=?, tut_status=?, checking_date=?, system_checking_status=?
        WHERE id=?`,
       [
         system_name,
@@ -92,6 +102,9 @@ const updateWeeklyEntry = async (req, res) => {
         week,
         recommendation || null,
         recom_status,
+        recom_implemented,
+        activity_status,
+        activity_implemented,
         tutorial_vids || null,
         tut_status,
         checking_date || null,
