@@ -116,8 +116,9 @@ const WeeklyCard = ({ r, onEdit, onDelete }) => (
 
     {r.recommendation ? (
       <div
-        className="pl-3 border-l-2 text-sm leading-snug"
+        className="pl-3 border-l-2 text-sm leading-snug truncate"
         style={{ borderColor: "#86b9b0", color: "#041421" }}
+        title={r.recommendation}
       >
         {r.recommendation}
       </div>
@@ -476,7 +477,7 @@ const WeeklyTracker = () => {
         </div>
       </div>
 
-      {/* Grouped tables */}
+      {/* Grouped cards */}
       {grouped.order.length === 0 && (
         <p
           className="text-center py-12 text-sm"
@@ -501,8 +502,8 @@ const WeeklyTracker = () => {
               {grouped.map[cat].length} systems
             </span>
           </div>
-          {/* Card view (small screens) */}
-          <div className="md:hidden p-4 space-y-3">
+          {/* Card view (all screen sizes) */}
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {grouped.map[cat].map((r) => (
               <WeeklyCard
                 key={r.id}
@@ -511,135 +512,6 @@ const WeeklyTracker = () => {
                 onDelete={handleDelete}
               />
             ))}
-          </div>
-
-          {/* Table view (medium screens and up) */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm" style={{ minWidth: "1400px" }}>
-              <thead>
-                <tr
-                  className="text-left text-[11px] uppercase font-bold whitespace-nowrap"
-                  style={{ color: "#86b9b0" }}
-                >
-                  <th
-                    className="px-5 py-2.5 max-w-xs sticky left-0 z-10"
-                    style={{ background: "#f0f4f4" }}
-                  >
-                    Capstone System
-                  </th>
-                  <th className="px-5 py-2.5 max-w-xs">Recommendation</th>
-                  <th className="px-5 py-2.5">Recom Status</th>
-                  <th className="px-5 py-2.5">Recom Implemented</th>
-                  <th className="px-5 py-2.5">Activity Status</th>
-                  <th className="px-5 py-2.5">Activity Implemented</th>
-                  <th className="px-5 py-2.5">Tutorial Vids</th>
-                  <th className="px-5 py-2.5">Tut Status</th>
-                  <th className="px-5 py-2.5">Checking Date</th>
-                  <th className="px-5 py-2.5">Checking Status</th>
-                  <th
-                    className="px-5 py-2.5 sticky right-0 z-10"
-                    style={{
-                      background: "#f0f4f4",
-                      boxShadow: "-4px 0 6px -4px rgba(4,20,33,0.15)",
-                    }}
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {grouped.map[cat].map((r) => (
-                  <tr
-                    key={r.id}
-                    className="border-t hover:bg-gray-50 transition-colors whitespace-nowrap group"
-                    style={{ borderColor: "#f0f4f4" }}
-                  >
-                    <td
-                      className="px-5 py-3 font-semibold whitespace-normal break-words max-w-xs sticky left-0 z-10 bg-white group-hover:bg-gray-50"
-                      style={{ color: "#041421" }}
-                    >
-                      {r.system_name}
-                    </td>
-                    <td className="px-5 py-3 whitespace-normal max-w-xs">
-                      {r.recommendation ? (
-                        <div
-                          className="pl-3 border-l-2 text-sm leading-snug line-clamp-3"
-                          style={{ borderColor: "#86b9b0", color: "#041421" }}
-                          title={r.recommendation}
-                        >
-                          {r.recommendation}
-                        </div>
-                      ) : (
-                        <span
-                          className="text-sm italic"
-                          style={{ color: "#86b9b0" }}
-                        >
-                          No recommendation
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusBadge status={r.recom_status} />
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusBadge status={r.recom_implemented} />
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusBadge status={r.activity_status} />
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusBadge status={r.activity_implemented} />
-                    </td>
-                    <td className="px-5 py-3" style={{ color: "#4c7273" }}>
-                      {r.tutorial_vids || "—"}
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusBadge status={r.tut_status} />
-                    </td>
-                    <td className="px-5 py-3" style={{ color: "#4c7273" }}>
-                      {r.checking_date
-                        ? new Date(r.checking_date).toLocaleDateString(
-                            "en-US",
-                            { year: "numeric", month: "short", day: "numeric" },
-                          )
-                        : "—"}
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusBadge status={r.system_checking_status} />
-                    </td>
-                    <td
-                      className="px-5 py-3 sticky right-0 z-10 bg-white group-hover:bg-gray-50"
-                      style={{ boxShadow: "-4px 0 6px -4px rgba(4,20,33,0.15)" }}
-                    >
-                      <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => openEdit(r)}
-                          className="p-1.5 rounded-lg"
-                          style={{ background: "#fef9c3" }}
-                          aria-label="Edit"
-                        >
-                          <Pencil
-                            className="w-3.5 h-3.5"
-                            style={{ color: "#854d0e" }}
-                          />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(r)}
-                          className="p-1.5 rounded-lg"
-                          style={{ background: "#fee2e2" }}
-                          aria-label="Delete"
-                        >
-                          <Trash2
-                            className="w-3.5 h-3.5"
-                            style={{ color: "#991b1b" }}
-                          />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </Card>
       ))}
